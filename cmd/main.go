@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/Blue-Onion/RestApi-Go/config"
+	"github.com/Blue-Onion/RestApi-Go/handler"
 	"github.com/go-chi/chi"
 )
 
@@ -23,23 +24,24 @@ func main() {
 		Handler: router,
 		Addr:    ":" + config.Port,
 	}
+	//
+	router.Get("/health",handler.Health)
+	stop:=make(chan os.Signal,1)
 	go func() {
-		log.Printf("Server Listenting on http:/localhost:%s\n", config.Port)
-		err := server.ListenAndServe()
-		if err != nil {
-			log.Fatal(err.Error())
+		log.Print("Listening on http:/localhost:3480")
+		err:=server.ListenAndServe()
+		if err!=nil{
+			log.Fatal("error occured")
 		}
-
 	}()
-	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
 	<-stop
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	signal.Notify(stop,os.Interrupt,syscall.SIGTERM)
+	ctx,cancel:=context.WithTimeout(context.Background(),time.Second*5)
 	defer cancel()
-	err := server.Shutdown(ctx)
-	if err != nil {
-		log.Fatalf("Server forced to shutdown: %s", err.Error())
+	err:=server.Shutdown(ctx)
+	if err!=nil{
+		log.Fatal("Error occured in Shutdown")
 	}
-	log.Printf("Server Shutdowned\n")
+	log.Fatal("Server Shutdown gracefully")
 
 }

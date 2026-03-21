@@ -18,5 +18,9 @@ type CreateUser struct{
 	Name      string
 	Email     string
 	Password  string
-	
+}
+type AutheticateUser struct{
+	Name      string
+	Email     string
+	Password  string
 }

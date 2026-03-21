@@ -7,6 +7,7 @@ import (
 
 	"github.com/Blue-Onion/RestApi-Go/internal/database"
 	"github.com/joho/godotenv"
+	_ "github.com/lib/pq"
 )
 
 type Config struct {
@@ -15,7 +16,7 @@ type Config struct {
 	JWTSecert string
 }
 type ApiConfig struct {
-	Db *database.Queries
+	UserRepo database.UserRepository
 }
 
 func LoadConfig() *Config {
@@ -42,6 +43,6 @@ func DbQuries() (*ApiConfig, error) {
 	if query == nil {
 		return nil, errors.New("Connection Failed")
 	}
-	apiConfig.Db = query
+	apiConfig.UserRepo = query
 	return apiConfig, nil
 }

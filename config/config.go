@@ -13,9 +13,9 @@ type Config struct{
 }
 func LoadConfig() *Config{
 	godotenv.Load()
-	dbUrl:=os.Getenv("DatabaseUrl")
+	dbUrl:=os.Getenv("DATABASE_URL")
 	Port:=os.Getenv("PORT")
-	Jwt:=os.Getenv("JWTSecert")
+	Jwt:=os.Getenv("JWT_SECERT")
 
 	return &Config{
 		DbUrl:dbUrl,

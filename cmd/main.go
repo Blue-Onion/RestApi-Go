@@ -46,7 +46,7 @@ func main() {
 
 	// User Routes
 	router.Post("/users", userHandler.HandleCreateUser)
-	router.Post("/login", userHandler.Authenticate)
+	router.Post("/login", userHandler.HandleLogin)
 
 	server := http.Server{
 		Handler: router,

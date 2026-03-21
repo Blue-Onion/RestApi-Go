@@ -1,7 +1,10 @@
 package user
 
 import (
+	"database/sql"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -16,7 +19,7 @@ type Handler struct {
 	Repo database.UserRepository
 }
 
-func (h *Handler) Authenticate(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	params := model.AutheticateUser{}
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&params)
@@ -24,19 +27,41 @@ func (h *Handler) Authenticate(w http.ResponseWriter, r *http.Request) {
 		handler.RespondWithError(w, 400, "Error in Parsing Json")
 		return
 	}
-	user,err:=h.Repo.GetUserByEmail(r.Context(),params.Email)
-	if err!=nil{
+	user, err := h.Repo.GetUserByEmail(r.Context(), params.Email)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+
+			handler.RespondWithError(w, 404, "User not found")
+			return
+		}
 		handler.RespondWithError(w, 400, err.Error())
 		return
-		
+
 	}
-	isValid:=utlis.CheckPassword(user.Password,params.Password)
-	if !isValid{
+	isValid := utlis.CheckPassword(user.Password, params.Password)
+	if !isValid {
 		handler.RespondWithError(w, 400, "Incorrect Password")
 		return
 
 	}
-	handler.RespondWithJson(w,200,user)
+	token, err := utlis.GenerateJwt(user.ID)
+	if err != nil {
+		handler.RespondWithError(w, 400, err.Error())
+		return
+	}
+	fmt.Println(token)
+	http.SetCookie(w, &http.Cookie{
+		Name:     "authToken",
+		Value:    token,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   false,
+		MaxAge:   3600 * 24,
+		SameSite: http.SameSiteLaxMode,
+	})
+	handler.RespondWithJson(w, 200, map[string]string{
+		"Message":"Login Successfull",
+	})
 }
 
 func (h *Handler) HandleCreateUser(w http.ResponseWriter, r *http.Request) {

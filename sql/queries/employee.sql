@@ -1,9 +1,9 @@
 -- name: CreateUser :one
 INSERT INTO
-    users (
+    employee (
         id,
-        Salary,
-        role,
+        name,
+        email,
         password,
         createdAt,
         updatedAt

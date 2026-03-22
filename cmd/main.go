@@ -48,6 +48,7 @@ func main() {
 	}))
 
 	router.Get("/health", handler.Health)
+	router.Get("/", handler.MainPage)
 
 	// User Routes
 	userRoute := chi.NewRouter()

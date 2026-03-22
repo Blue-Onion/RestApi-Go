@@ -4,15 +4,13 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"fmt"
-	"net/http"
-	"time"
-
 	"github.com/Blue-Onion/RestApi-Go/handler"
 	"github.com/Blue-Onion/RestApi-Go/internal/database"
 	"github.com/Blue-Onion/RestApi-Go/model"
 	"github.com/Blue-Onion/RestApi-Go/utlis"
 	"github.com/google/uuid"
+	"net/http"
+	"time"
 )
 
 type Handler struct {
@@ -49,7 +47,6 @@ func (h *Handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		handler.RespondWithError(w, 400, err.Error())
 		return
 	}
-	fmt.Println(token)
 	http.SetCookie(w, &http.Cookie{
 		Name:     "authToken",
 		Value:    token,
@@ -60,7 +57,21 @@ func (h *Handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		SameSite: http.SameSiteLaxMode,
 	})
 	handler.RespondWithJson(w, 200, map[string]string{
-		"Message":"Login Successfull",
+		"Message": "Login Successfull",
+	})
+}
+func (h *Handler) HandleLogOut(w http.ResponseWriter, r *http.Request) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     "auth_token",
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+		Secure:   false,
+		SameSite: http.SameSiteLaxMode,
+	})
+	handler.RespondWithJson(w, 200, map[string]string{
+		"Message": "LogOut Successfully",
 	})
 }
 

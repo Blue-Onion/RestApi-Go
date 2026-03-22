@@ -11,6 +11,7 @@ import (
 
 	"github.com/Blue-Onion/RestApi-Go/config"
 	"github.com/Blue-Onion/RestApi-Go/handler"
+	"github.com/Blue-Onion/RestApi-Go/handler/middleware"
 	"github.com/Blue-Onion/RestApi-Go/handler/user"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/cors"
@@ -30,6 +31,9 @@ func main() {
 	userHandler := &user.Handler{
 		Repo: apiCfg.UserRepo,
 	}
+	middlewareHandler := &middleware.Handler{
+		Repo: apiCfg.UserRepo,
+	}
 
 	//Server
 	router := chi.NewRouter()
@@ -45,8 +49,12 @@ func main() {
 	router.Get("/health", handler.Health)
 
 	// User Routes
-	router.Post("/users", userHandler.HandleCreateUser)
-	router.Post("/login", userHandler.HandleLogin)
+	userRoute := chi.NewRouter()
+	userRoute.Post("/users", userHandler.HandleCreateUser)
+	userRoute.Post("/login", userHandler.HandleLogin)
+	userRoute.Post("/logOut", middlewareHandler.MiddlewareAuth(http.HandlerFunc(userHandler.HandleLogOut)))
+
+	router.Mount("/api", userRoute)
 
 	server := http.Server{
 		Handler: router,

@@ -11,13 +11,29 @@ import (
 
 	"github.com/Blue-Onion/RestApi-Go/config"
 	"github.com/Blue-Onion/RestApi-Go/handler"
+	"github.com/Blue-Onion/RestApi-Go/handler/middleware"
+	"github.com/Blue-Onion/RestApi-Go/handler/user"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/cors"
 )
 
 func main() {
 	//Load Env
-	config := config.LoadConfig()
+	cfg := config.LoadConfig()
+
+	//DB
+	apiCfg, err := config.DbQuries()
+	if err != nil {
+		log.Fatalf("Couldn't connect to database: %v", err)
+	}
+
+	//Handlers
+	userHandler := &user.Handler{
+		Repo: apiCfg.UserRepo,
+	}
+	middlewareHandler := &middleware.Handler{
+		Repo: apiCfg.UserRepo,
+	}
 
 	//Server
 	router := chi.NewRouter()
@@ -29,17 +45,27 @@ func main() {
 		AllowCredentials: false,
 		MaxAge:           300,
 	}))
+
+	router.Get("/health", handler.Health)
+
+	// User Routes
+	userRoute := chi.NewRouter()
+	userRoute.Post("/users", userHandler.HandleCreateUser)
+	userRoute.Post("/login", userHandler.HandleLogin)
+	userRoute.Post("/logOut", middlewareHandler.MiddlewareAuth(http.HandlerFunc(userHandler.HandleLogOut)))
+
+	router.Mount("/api", userRoute)
+
 	server := http.Server{
 		Handler: router,
-		Addr:    ":" + config.Port,
+		Addr:    ":" + cfg.Port,
 	}
-	//
-	router.Get("/health",handler.Health)
+
 	stop := make(chan os.Signal, 1)
 	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
 
 	go func() {
-		log.Printf("Listening on http://localhost:%s", config.Port)
+		log.Printf("Listening on http://localhost:%s", cfg.Port)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("Error occurred: %v", err)
 		}

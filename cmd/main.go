@@ -11,7 +11,8 @@ import (
 
 	"github.com/Blue-Onion/RestApi-Go/config"
 	"github.com/Blue-Onion/RestApi-Go/handler"
-	"github.com/Blue-Onion/RestApi-Go/handler/middleware"
+	"github.com/Blue-Onion/RestApi-Go/middleware"
+
 	"github.com/Blue-Onion/RestApi-Go/handler/user"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/cors"

@@ -13,23 +13,18 @@ import (
 )
 
 const createUser = `-- name: CreateUser :one
-INSERT INTO
-    users (
-        id,
-        Name,
-        Email,
-        password,
-        createdAt,
-        updatedAt
-    )
-VALUES ($1, $2, $3, $4,$5,$6) rETURNING id,
+INSERT INTO users (
     name,
+    email,
+    password,
     createdAt,
     updatedAt
+)
+VALUES ($1, $2, $3, $4, $5)
+RETURNING id, name, email, createdAt, updatedAt
 `
 
 type CreateUserParams struct {
-	ID        uuid.UUID
 	Name      string
 	Email     string
 	Password  string
@@ -40,13 +35,13 @@ type CreateUserParams struct {
 type CreateUserRow struct {
 	ID        uuid.UUID
 	Name      string
+	Email     string
 	Createdat time.Time
 	Updatedat time.Time
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateUserRow, error) {
 	row := q.db.QueryRowContext(ctx, createUser,
-		arg.ID,
 		arg.Name,
 		arg.Email,
 		arg.Password,
@@ -57,41 +52,76 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateU
 	err := row.Scan(
 		&i.ID,
 		&i.Name,
+		&i.Email,
 		&i.Createdat,
 		&i.Updatedat,
 	)
 	return i, err
 }
 
+const deleteUser = `-- name: DeleteUser :exec
+DELETE FROM users
+WHERE id = $1
+`
+
+func (q *Queries) DeleteUser(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deleteUser, id)
+	return err
+}
+
 const getUser = `-- name: GetUser :one
-SELECT name, email FROM users WHERE id = $1
+SELECT id, name, email, createdAt, updatedAt
+FROM users
+WHERE id = $1
 `
 
 type GetUserRow struct {
-	Name  string
-	Email string
+	ID        uuid.UUID
+	Name      string
+	Email     string
+	Createdat time.Time
+	Updatedat time.Time
 }
 
 func (q *Queries) GetUser(ctx context.Context, id uuid.UUID) (GetUserRow, error) {
 	row := q.db.QueryRowContext(ctx, getUser, id)
 	var i GetUserRow
-	err := row.Scan(&i.Name, &i.Email)
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Email,
+		&i.Createdat,
+		&i.Updatedat,
+	)
 	return i, err
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, name password FROM users WHERE email = $1
+SELECT id, name, email, password, createdAt, updatedAt
+FROM users
+WHERE email = $1
 `
 
 type GetUserByEmailRow struct {
-	ID       uuid.UUID
-	Password string
+	ID        uuid.UUID
+	Name      string
+	Email     string
+	Password  string
+	Createdat time.Time
+	Updatedat time.Time
 }
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (GetUserByEmailRow, error) {
 	row := q.db.QueryRowContext(ctx, getUserByEmail, email)
 	var i GetUserByEmailRow
-	err := row.Scan(&i.ID, &i.Password)
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Email,
+		&i.Password,
+		&i.Createdat,
+		&i.Updatedat,
+	)
 	return i, err
 }
 

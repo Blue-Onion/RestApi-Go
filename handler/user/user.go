@@ -8,7 +8,6 @@ import (
 	"github.com/Blue-Onion/RestApi-Go/internal/database"
 	"github.com/Blue-Onion/RestApi-Go/model"
 	"github.com/Blue-Onion/RestApi-Go/utlis"
-	"github.com/google/uuid"
 	"net/http"
 	"time"
 )
@@ -89,7 +88,6 @@ func (h *Handler) HandleCreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	user, err := h.Repo.CreateUser(r.Context(), database.CreateUserParams{
-		ID:        uuid.New(),
 		Name:      param.Name,
 		Email:     param.Email,
 		Password:  hashPass,

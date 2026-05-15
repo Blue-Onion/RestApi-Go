@@ -14,6 +14,8 @@ type Handler struct {
 	Repo database.UserRepository
 }
 
+const contextKey = "user"
+
 func (h Handler) MiddlewareAuth(next http.Handler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		token, err := r.Cookie("authToken")
@@ -32,7 +34,7 @@ func (h Handler) MiddlewareAuth(next http.Handler) http.HandlerFunc {
 			handler.RespondWithError(w, 401, "user not found")
 			return
 		}
-		ctx := context.WithValue(r.Context(), "user", user)
+		ctx := context.WithValue(r.Context(), contextKey, user)
 
 		next.ServeHTTP(w, r.WithContext(ctx))
 

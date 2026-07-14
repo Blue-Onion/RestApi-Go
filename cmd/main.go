@@ -11,9 +11,9 @@ import (
 
 	"github.com/Blue-Onion/RestApi-Go/config"
 	"github.com/Blue-Onion/RestApi-Go/handler"
+	"github.com/Blue-Onion/RestApi-Go/handler/auth"
 	"github.com/Blue-Onion/RestApi-Go/middleware"
 
-	"github.com/Blue-Onion/RestApi-Go/handler/user"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/cors"
 )
@@ -29,7 +29,7 @@ func main() {
 	}
 
 	//Handlers
-	userHandler := &user.Handler{
+	authHandler := &auth.Handler{
 		Repo: apiCfg.UserRepo,
 	}
 	middlewareHandler := &middleware.Handler{
@@ -49,14 +49,8 @@ func main() {
 	router.Use(middleware.MiddlewareRateLimit)
 	router.Get("/health", handler.Health)
 	router.Get("/", handler.MainPage)
-
-	// User Routes
-	userRoute := chi.NewRouter()
-	userRoute.Post("/users", userHandler.HandleCreateUser)
-	userRoute.Post("/login", userHandler.HandleLogin)
-	userRoute.Post("/logOut", middlewareHandler.MiddlewareAuth(http.HandlerFunc(userHandler.HandleLogOut)))
-
-	router.Mount("/api", userRoute)
+	authRouter := auth.AuthRoute(authHandler, *middlewareHandler)
+	router.Mount("auth", authRouter)
 
 	server := http.Server{
 		Handler: router,

@@ -7,6 +7,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
@@ -16,61 +17,45 @@ const createUser = `-- name: CreateUser :one
 INSERT INTO users (
     name,
     email,
-    password,
-    createdAt,
-    updatedAt
+    password
 )
-VALUES ($1, $2, $3, $4, $5)
-RETURNING id, name, email, createdAt, updatedAt
+VALUES ($1, $2, $3)
+RETURNING
+    id
 `
 
 type CreateUserParams struct {
-	Name      string
-	Email     string
-	Password  string
-	Createdat time.Time
-	Updatedat time.Time
+	Name     string
+	Email    string
+	Password string
 }
 
-type CreateUserRow struct {
-	ID        uuid.UUID
-	Name      string
-	Email     string
-	Createdat time.Time
-	Updatedat time.Time
+func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (uuid.UUID, error) {
+	row := q.db.QueryRowContext(ctx, createUser, arg.Name, arg.Email, arg.Password)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
 }
 
-func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (CreateUserRow, error) {
-	row := q.db.QueryRowContext(ctx, createUser,
-		arg.Name,
-		arg.Email,
-		arg.Password,
-		arg.Createdat,
-		arg.Updatedat,
-	)
-	var i CreateUserRow
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Email,
-		&i.Createdat,
-		&i.Updatedat,
-	)
-	return i, err
-}
-
-const deleteUser = `-- name: DeleteUser :exec
+const deleteUser = `-- name: DeleteUser :one
 DELETE FROM users
 WHERE id = $1
+RETURNING id
 `
 
-func (q *Queries) DeleteUser(ctx context.Context, id uuid.UUID) error {
-	_, err := q.db.ExecContext(ctx, deleteUser, id)
-	return err
+func (q *Queries) DeleteUser(ctx context.Context, id uuid.UUID) (uuid.UUID, error) {
+	row := q.db.QueryRowContext(ctx, deleteUser, id)
+	err := row.Scan(&id)
+	return id, err
 }
 
 const getUser = `-- name: GetUser :one
-SELECT id, name, email, createdAt, updatedAt
+SELECT
+    id,
+    name,
+    email,
+    created_at,
+    updated_at
 FROM users
 WHERE id = $1
 `
@@ -79,8 +64,8 @@ type GetUserRow struct {
 	ID        uuid.UUID
 	Name      string
 	Email     string
-	Createdat time.Time
-	Updatedat time.Time
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 func (q *Queries) GetUser(ctx context.Context, id uuid.UUID) (GetUserRow, error) {
@@ -90,25 +75,27 @@ func (q *Queries) GetUser(ctx context.Context, id uuid.UUID) (GetUserRow, error)
 		&i.ID,
 		&i.Name,
 		&i.Email,
-		&i.Createdat,
-		&i.Updatedat,
+		&i.CreatedAt,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
 
 const getUserByEmail = `-- name: GetUserByEmail :one
-SELECT id, name, email, password, createdAt, updatedAt
+SELECT
+    id,
+    name,
+    email,
+    password
 FROM users
 WHERE email = $1
 `
 
 type GetUserByEmailRow struct {
-	ID        uuid.UUID
-	Name      string
-	Email     string
-	Password  string
-	Createdat time.Time
-	Updatedat time.Time
+	ID       uuid.UUID
+	Name     string
+	Email    string
+	Password string
 }
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (GetUserByEmailRow, error) {
@@ -119,8 +106,6 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (GetUserByEm
 		&i.Name,
 		&i.Email,
 		&i.Password,
-		&i.Createdat,
-		&i.Updatedat,
 	)
 	return i, err
 }
@@ -128,88 +113,47 @@ func (q *Queries) GetUserByEmail(ctx context.Context, email string) (GetUserByEm
 const updateUser = `-- name: UpdateUser :one
 UPDATE users
 SET
-    name = $2,
-    email = $3,
-    password = $4,
-    updatedAt = $5
-WHERE id = $1
-RETURNING id, name, email, createdAt, updatedAt
+    name = COALESCE($1, name),
+    email = COALESCE($2, email)
+WHERE id = $3
+RETURNING id
 `
 
 type UpdateUserParams struct {
-	ID        uuid.UUID
-	Name      string
-	Email     string
-	Password  string
-	Updatedat time.Time
+	Name  sql.NullString
+	Email sql.NullString
+	ID    uuid.UUID
 }
 
-type UpdateUserRow struct {
-	ID        uuid.UUID
-	Name      string
-	Email     string
-	Createdat time.Time
-	Updatedat time.Time
+func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (uuid.UUID, error) {
+	row := q.db.QueryRowContext(ctx, updateUser, arg.Name, arg.Email, arg.ID)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
 }
 
-func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (UpdateUserRow, error) {
-	row := q.db.QueryRowContext(ctx, updateUser,
-		arg.ID,
-		arg.Name,
-		arg.Email,
-		arg.Password,
-		arg.Updatedat,
-	)
-	var i UpdateUserRow
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Email,
-		&i.Createdat,
-		&i.Updatedat,
-	)
-	return i, err
-}
-
-const updateUserProfile = `-- name: UpdateUserProfile :one
+const updateUserPassword = `-- name: UpdateUserPassword :one
 UPDATE users
 SET
-    name = $2,
-    email = $3,
-    updatedAt = $4
+    password = $2
 WHERE id = $1
-RETURNING id, name, email, createdAt, updatedAt
+RETURNING id, name, email
 `
 
-type UpdateUserProfileParams struct {
-	ID        uuid.UUID
-	Name      string
-	Email     string
-	Updatedat time.Time
+type UpdateUserPasswordParams struct {
+	ID       uuid.UUID
+	Password string
 }
 
-type UpdateUserProfileRow struct {
-	ID        uuid.UUID
-	Name      string
-	Email     string
-	Createdat time.Time
-	Updatedat time.Time
+type UpdateUserPasswordRow struct {
+	ID    uuid.UUID
+	Name  string
+	Email string
 }
 
-func (q *Queries) UpdateUserProfile(ctx context.Context, arg UpdateUserProfileParams) (UpdateUserProfileRow, error) {
-	row := q.db.QueryRowContext(ctx, updateUserProfile,
-		arg.ID,
-		arg.Name,
-		arg.Email,
-		arg.Updatedat,
-	)
-	var i UpdateUserProfileRow
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.Email,
-		&i.Createdat,
-		&i.Updatedat,
-	)
+func (q *Queries) UpdateUserPassword(ctx context.Context, arg UpdateUserPasswordParams) (UpdateUserPasswordRow, error) {
+	row := q.db.QueryRowContext(ctx, updateUserPassword, arg.ID, arg.Password)
+	var i UpdateUserPasswordRow
+	err := row.Scan(&i.ID, &i.Name, &i.Email)
 	return i, err
 }

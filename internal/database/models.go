@@ -5,16 +5,30 @@
 package database
 
 import (
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/sqlc-dev/pqtype"
 )
+
+type Session struct {
+	ID               uuid.UUID
+	UserID           uuid.UUID
+	RefreshTokenHash string
+	UserAgent        sql.NullString
+	IpAddress        pqtype.Inet
+	CreatedAt        time.Time
+	LastUsedAt       time.Time
+	ExpiresAt        time.Time
+	RevokedAt        sql.NullTime
+}
 
 type User struct {
 	ID        uuid.UUID
 	Name      string
-	Password  string
 	Email     string
-	Createdat time.Time
-	Updatedat time.Time
+	Password  string
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }

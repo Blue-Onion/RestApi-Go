@@ -9,15 +9,15 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/Blue-Onion/RestApi-Go/config"
 	"github.com/go-chi/chi"
 	"github.com/go-chi/cors"
 )
 
-const PORT = "3480"
-
 func main() {
 	router := chi.NewRouter()
-
+	cfg := config.LoadConfig()
+	PORT := cfg.Port
 	router.Use(cors.Handler(
 		cors.Options{
 			AllowedOrigins:   []string{"https://*", "http://*"},

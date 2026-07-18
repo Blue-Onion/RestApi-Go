@@ -1,0 +1,94 @@
+PROJECT: RestApi-Go (MeGo)
+==========================
+A RESTful authentication API built with Go (Chi router) + PostgreSQL + SQLC.
+
+STACK
+  - Language: Go
+  - Router: go-chi/chi (v1.5.5)
+  - Database: PostgreSQL with database/sql + lib/pq driver
+  - Codegen: SQLC for type-safe SQL queries
+  - Migrations: Goose (SQL files in sql/schema/)
+  - Auth: JWT (HS256) via golang-jwt/jwt/v4 + bcrypt via golang.org/x/crypto
+
+DIRECTORY STRUCTURE
+-------------------
+cmd/main.go                 Entry point — wires dependencies, starts HTTP server
+config/config.go            Loads .env, opens DB connection, returns ApiConfig
+handler/res.go              JSON/HTML response helpers, Health & MainPage handlers
+handler/auth/route.go       Auth sub-router (/auth)
+handler/auth/auth.go        Auth handlers: CreateUser, Login, Logout
+middleware/auth.go          JWT auth middleware (reads authToken cookie)
+middleware/rate.go          IP-based token bucket rate limiter (5 req/sec)
+internal/database/          SQLC-generated code (models, queries, UserRepository interface)
+model/model.go              Domain models: User, CreateUser, AutheticateUser
+utlis/jwt.go                JWT generation & validation
+utlis/bycrpt.go             bcrypt password hashing & comparison
+utlis/db.go                 Exports Db string
+cache/                      Stub package (not yet implemented)
+sql/schema/                 Goose migrations (001_user.sql, 002_session.sql)
+sql/queries/user.sql        SQLC query definitions (6 queries)
+template/index.html         Static HTML landing page
+
+AUTH FLOW
+---------
+1. REGISTER (POST /auth/users)
+   Client sends {name, email, password} -> server hashes password (bcrypt cost 12)
+   -> inserts into users table -> returns 201 with user data (no password)
+
+2. LOGIN (POST /auth/login)
+   Client sends {email, password} -> server fetches user by email -> bcrypt verify
+   -> generates JWT (HS256, 24h expiry, userId claim) -> sets HttpOnly cookie
+   "authToken" -> returns 200
+
+3. AUTHENTICATED REQUEST
+   Client sends request with "authToken" cookie -> middleware validates JWT,
+   extracts userId, fetches user from DB -> injects user into request context
+
+4. LOGOUT (POST /auth/logOut)
+   Middleware validates authToken -> handler clears the auth cookie (MaxAge: -1)
+   -> returns 200
+
+   NOTE: Logout does NOT invalidate the JWT server-side (no blacklist). The
+   sessions table exists but is not wired into any logic yet.
+
+DATABASE SCHEMA
+---------------
+users table:
+  id          UUID (PK, auto-generated)
+  name        TEXT NOT NULL
+  email       TEXT NOT NULL UNIQUE
+  password    TEXT NOT NULL
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+
+sessions table (unused in code, schema-only):
+  id                UUID (PK)
+  user_id           UUID (FK -> users)
+  refresh_token_hash TEXT
+  user_agent        TEXT
+  ip_address        INET
+  created_at        TIMESTAMPTZ
+  last_used_at      TIMESTAMPTZ
+  expires_at        TIMESTAMPTZ
+  revoked_at        TIMESTAMPTZ
+
+API ENDPOINTS
+-------------
+GET  /health          -> {"Health":"ok"}
+GET  /                -> Serves template/index.html
+POST /auth/users      -> Register (no auth)
+POST /auth/login      -> Login (no auth)
+POST /auth/logOut     -> Logout (auth required)
+
+NOTABLE ISSUES / TODOS
+----------------------
+1. Cookie name mismatch: login sets "authToken", logout clears "auth_token"
+2. Column name mismatch: schema uses created_at/updated_at, queries use createdAt/updatedAt
+3. Typo in package name: "utlis" should be "utils"
+4. Typo in variable: "JWTSecert" should be "JWTSecret"
+5. Sessions table defined but unused (no Go queries)
+6. Cache package is all stubs
+7. Rate limiter is in-memory only (not suitable for multi-instance deployment)
+8. No tests exist
+9. grpc listed in go.mod but never imported
+10. repo interface methods (DeleteUser, UpdateUser, UpdateUserProfile) not exposed

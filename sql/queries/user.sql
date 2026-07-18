@@ -2,47 +2,47 @@
 INSERT INTO users (
     name,
     email,
-    password,
-    createdAt,
-    updatedAt
+    password
 )
-VALUES ($1, $2, $3, $4, $5)
-RETURNING id, name, email, createdAt, updatedAt;
-
+VALUES ($1, $2, $3)
+RETURNING
+    id;
 
 -- name: GetUser :one
-SELECT id, name, email, createdAt, updatedAt
+SELECT
+    id,
+    name,
+    email,
+    created_at,
+    updated_at
 FROM users
 WHERE id = $1;
 
-
 -- name: GetUserByEmail :one
-SELECT id, name, email, password, createdAt, updatedAt
+SELECT
+    id,
+    name,
+    email,
+    password
 FROM users
 WHERE email = $1;
-
 
 -- name: UpdateUser :one
 UPDATE users
 SET
-    name = $2,
-    email = $3,
-    password = $4,
-    updatedAt = $5
-WHERE id = $1
-RETURNING id, name, email, createdAt, updatedAt;
+    name = COALESCE(sqlc.narg(name), name),
+    email = COALESCE(sqlc.narg(email), email)
+WHERE id = sqlc.arg(id)
+RETURNING id;
 
-
--- name: UpdateUserProfile :one
+-- name: UpdateUserPassword :one
 UPDATE users
 SET
-    name = $2,
-    email = $3,
-    updatedAt = $4
+    password = $2
 WHERE id = $1
-RETURNING id, name, email, createdAt, updatedAt;
+RETURNING id, name, email;
 
-
--- name: DeleteUser :exec
+-- name: DeleteUser :one
 DELETE FROM users
-WHERE id = $1;
+WHERE id = $1
+RETURNING id;

@@ -32,17 +32,3 @@ func LoadConfig() *Config {
 	}
 
 }
-func DbQuries() (*ApiConfig, error) {
-	apiConfig := &ApiConfig{}
-	config := LoadConfig()
-	conn, err := sql.Open("postgres", config.DbUrl)
-	if err != nil {
-		return nil, err
-	}
-	query := database.New(conn)
-	if query == nil {
-		return nil, errors.New("Connection Failed")
-	}
-	apiConfig.UserRepo = query
-	return apiConfig, nil
-}
